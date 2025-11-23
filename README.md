@@ -25,7 +25,7 @@ A comprehensive web-based signal processing tool for computing various transform
 
 ## Installation (Local)
 ```bash
-git clone https://github.com/yourusername/signal-processing-app.git
+git clone https://github.com/nishit0072e/Digital-Signal-Processing-Transforms.git
 cd Digital-Signal-Processing-Transforms
 # Open index.html in your browser
 ```
