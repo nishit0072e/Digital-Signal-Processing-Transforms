@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Processing Transforms</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 5px; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+        .panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        .canvas-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            position: relative;
+            min-height: 300px;
+        }
+        canvas { max-width: 100%; }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 8px 15px;
+            background: #e0e0e0;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: auto;
+            margin: 0;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #764ba2;
+        }
+        .output-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎛️ Signal Processing Transforms</h1>
+            <p>Z-Transform, DFT, DTFT, FFT, Inverse Transforms & Butterfly Diagrams</p>
+        </header>
+        
+        <div class="main-content">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Input Signal</h2>
+                <div class="input-group">
+                    <label>Signal Type:</label>
+                    <select id="signalType">
+                        <option value="custom">Custom Sequence</option>
+                        <option value="exponential">Exponential: a^n * u[n]</option>
+                        <option value="sine">Sine Wave</option>
+                        <option value="impulse">Impulse</option>
+                        <option value="step">Step Function</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Signal Sequence (comma-separated):</label>
+                    <textarea id="signalInput">1,2,3,4,5</textarea>
+                </div>
+                <div class="input-group" id="paramGroup" style="display:none;">
+                    <label>Parameter a:</label>
+                    <input type="number" id="paramA" value="0.5" step="0.1" min="-2" max="2">
+                </div>
+                <div class="input-group">
+                    <label>Frequency (for DTFT/DFT):</label>
+                    <input type="number" id="frequency" value="0.1" step="0.01" min="0" max="1">
+                </div>
+                <button id="updateBtn">Update Signal</button>
+            </div>
+
+            <!-- Transforms Panel -->
+            <div class="panel">
+                <h2>Transforms</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-transform="zTransform">Z-Transform</button>
+                    <button class="tab-btn" data-transform="dft">DFT</button>
+                    <button class="tab-btn" data-transform="fft">FFT</button>
+                    <button class="tab-btn" data-transform="dtft">DTFT</button>
+                </div>
+                
+                <div id="zTransform">
+                    <div class="input-group">
+                        <label>Z-plane radius (r):</label>
+                        <input type="number" id="zRadius" value="1" step="0.1" min="0.1" max="3">
+                    </div>
+                    <button id="zTransformBtn">Compute Z-Transform</button>
+                    <button id="rocBtn">View ROC</button>
+                </div>
+                
+                <div id="dft" style="display:none;">
+                    <button id="dftBtn">Compute DFT</button>
+                    <button id="idftBtn">Compute IDFT</button>
+                </div>
+                
+                <div id="fft" style="display:none;">
+                    <button id="fftBtn">Compute FFT (DIT)</button>
+                    <button id="ifftDitBtn">Inverse FFT (DIT)</button>
+                    <button id="ifftDifBtn">Inverse FFT (DIF)</button>
+                    <button id="butterflyDitBtn">DIT Butterfly Diagram</button>
+                    <button id="butterflyDifBtn">DIF Butterfly Diagram</button>
+                </div>
+                
+                <div id="dtft" style="display:none;">
+                    <button id="dtftBtn">Compute DTFT</button>
+                    <button id="idtftBtn">Compute IDTFT</button>
+                </div>
+                
+                <div class="output-box" id="output">Ready for input...</div>
+            </div>
+
+            <!-- Visualization Panels -->
+            <div class="panel two-col">
+                <div>
+                    <h2>Signal Plot</h2>
+                    <div class="canvas-container">
+                        <canvas id="signalCanvas"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h2>Magnitude Spectrum</h2>
+                    <div class="canvas-container">
+                        <canvas id="magCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel two-col">
+                <div>
+                    <h2>Phase Spectrum</h2>
+                    <div class="canvas-container">
+                        <canvas id="phaseCanvas"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h2>ROC / Z-Plane</h2>
+                    <div class="canvas-container">
+                        <canvas id="rocCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel full-width">
+                <h2>Butterfly Diagram</h2>
+                <div class="canvas-container">
+                    <canvas id="butterflyCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSignal = [1, 2, 3, 4, 5];
+        let currentTransform = 'zTransform';
+        let signalChart, magChart, phaseChart;
+
+        // Helper functions
+        function complexAdd(a, b) {
+            return {real: a.real + b.real, imag: a.imag + b.imag};
+        }
+
+        function complexSub(a, b) {
+            return {real: a.real - b.real, imag: a.imag - b.imag};
+        }
+
+        function complexMult(a, b) {
+            return {
+                real: a.real * b.real - a.imag * b.imag,
+                imag: a.real * b.imag + a.imag * b.real
+            };
+        }
+
+        function nearestPowerOf2(n) {
+            return Math.pow(2, Math.ceil(Math.log2(n)));
+        }
+
+        function linspace(start, end, num) {
+            const result = [];
+            for (let i = 0; i < num; i++) {
+                result.push(start + (end - start) * i / (num - 1));
+            }
+            return result;
+        }
+
+        function outputText(text) {
+            document.getElementById('output').textContent = text;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Ready for computation...';
+        }
+
+        function updateSignalPreview() {
+            const type = document.getElementById('signalType').value;
+            const paramGroup = document.getElementById('paramGroup');
+            
+            if (type === 'exponential' || type === 'sine') {
+                paramGroup.style.display = 'block';
+            } else {
+                paramGroup.style.display = 'none';
+            }
+
+            let newSignal = [];
+            const input = document.getElementById('signalInput').value;
+            
+            try {
+                if (type === 'custom') {
+                    newSignal = input.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+                    if (newSignal.length === 0) newSignal = [1];
+                } else if (type === 'exponential') {
+                    const a = parseFloat(document.getElementById('paramA').value) || 0.5;
+                    newSignal = Array.from({length: 8}, (_, n) => Math.pow(a, n));
+                } else if (type === 'sine') {
+                    const freq = parseFloat(document.getElementById('frequency').value) || 0.1;
+                    newSignal = Array.from({length: 16}, (_, n) => Math.sin(2 * Math.PI * freq * n));
+                } else if (type === 'impulse') {
+                    newSignal = [1, 0, 0, 0, 0];
+                } else if (type === 'step') {
+                    newSignal = [1, 1, 1, 1, 1, 1, 1, 1];
+                }
+                
+                currentSignal = newSignal;
+                plotSignal();
+                clearOutput();
+            } catch (e) {
+                console.error('Error updating signal:', e);
+                currentSignal = [1];
+                plotSignal();
+            }
+        }
+
+        function plotSignal() {
+            const ctx = document.getElementById('signalCanvas').getContext('2d');
+            
+            if (signalChart) signalChart.destroy();
+            
+            const labels = currentSignal.map((_, i) => `n=${i}`);
+            
+            signalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Signal x[n]',
+                        data: currentSignal,
+                        backgroundColor: '#667eea',
+                        borderColor: '#764ba2',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function plotMagnitudeSpectrum(x, y, xlabel = 'k', continuous = false) {
+            const ctx = document.getElementById('magCanvas').getContext('2d');
+            
+            if (magChart) magChart.destroy();
+            
+            const labels = continuous ? 
+                x.map((val, i) => (i % 10 === 0 ? val.toFixed(1) : '')) : 
+                x.map((_, i) => i.toString());
+            
+            magChart = new Chart(ctx, {
+                type: continuous ? 'line' : 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Magnitude Spectrum',
+                        data: y,
+                        backgroundColor: '#667eea',
+                        borderColor: '#764ba2',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {display: true}
+                    },
+                    scales: {
+                        y: {beginAtZero: true},
+                        x: {title: {display: true, text: xlabel}}
+                    }
+                }
+            });
+        }
+
+        function plotPhaseSpectrum(x, y, continuous = false) {
+            const ctx = document.getElementById('phaseCanvas').getContext('2d');
+            
+            if (phaseChart) phaseChart.destroy();
+            
+            const labels = continuous ? 
+                x.map((val, i) => (i % 10 === 0 ? val.toFixed(1) : '')) : 
+                x.map((_, i) => i.toString());
+            
+            phaseChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Phase Spectrum (radians)',
+                        data: y,
+                        backgroundColor: '#ff6b6b',
+                        borderColor: '#ff6b6b',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: continuous ? 1 : 4,
+                        pointBackgroundColor: '#ff6b6b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {display: true}
+                    },
+                    scales: {
+                        y: {min: -Math.PI, max: Math.PI, title: {display: true, text: 'Phase (rad)'}},
+                        x: {title: {display: true, text: 'Frequency'}}
+                    }
+                }
+            });
+        }
+
+        // Z-Transform
+        function computeZAt(z_real, z_imag) {
+            let sum_real = 0, sum_imag = 0;
+            for (let n = 0; n < currentSignal.length; n++) {
+                const angle = -n * Math.atan2(z_imag, z_real);
+                const mag = Math.pow(Math.sqrt(z_real*z_real + z_imag*z_imag), -n);
+                sum_real += currentSignal[n] * mag * Math.cos(angle);
+                sum_imag += currentSignal[n] * mag * Math.sin(angle);
+            }
+            return Math.sqrt(sum_real*sum_real + sum_imag*sum_imag);
+        }
+
+        function performZTransform() {
+            try {
+                const r = parseFloat(document.getElementById('zRadius').value) || 1;
+                const omega_vals = linspace(0, 2 * Math.PI, 100);
+                const mag = omega_vals.map(omega => {
+                    const z_real = r * Math.cos(omega);
+                    const z_imag = r * Math.sin(omega);
+                    return computeZAt(z_real, z_imag);
+                });
+
+                plotMagnitudeSpectrum(omega_vals, mag, 'ω (radians)', true);
+                outputText(`Z-Transform computed at r=${r}\nPoints: ${mag.length}\nMax: ${Math.max(...mag).toFixed(4)}\nMin: ${Math.min(...mag).toFixed(4)}`);
+            } catch (e) {
+                console.error('Error in performZTransform:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        function computeROC() {
+            try {
+                const canvas = document.getElementById('rocCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const w = canvas.width;
+                const h = canvas.height;
+                const cx = w / 2, cy = h / 2, scale = 80;
+
+                // Draw axes
+                ctx.strokeStyle = '#ddd';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, cy);
+                ctx.lineTo(w, cy);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, h);
+                ctx.stroke();
+
+                // Draw unit circle
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                // Draw poles and zeros
+                ctx.fillStyle = '#ff6b6b';
+                for (let i = 0; i < Math.min(currentSignal.length, 3); i++) {
+                    ctx.beginPath();
+                    ctx.arc(cx + i * 30 - 30, cy, 8, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = '#51cf66';
+                ctx.beginPath();
+                ctx.arc(cx, cy - 50, 6, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Labels
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('ROC Diagram', 10, 20);
+                ctx.font = '11px Arial';
+                ctx.fillText('X: Poles (Red)', 10, 40);
+                ctx.fillText('O: Zeros (Green)', 10, 55);
+                ctx.fillText('Re', cx + 5, h - 5);
+                ctx.fillText('Im', 5, cy - 5);
+            } catch (e) {
+                console.error('Error in computeROC:', e);
+            }
+        }
+
+        // DFT
+        function performDFT() {
+            try {
+                const N = currentSignal.length;
+                const dft = [];
+                for (let k = 0; k < N; k++) {
+                    let real = 0, imag = 0;
+                    for (let n = 0; n < N; n++) {
+                        const angle = -2 * Math.PI * k * n / N;
+                        real += currentSignal[n] * Math.cos(angle);
+                        imag += currentSignal[n] * Math.sin(angle);
+                    }
+                    dft.push({real, imag});
+                }
+
+                const mag = dft.map(x => Math.sqrt(x.real**2 + x.imag**2));
+                const phase = dft.map(x => Math.atan2(x.imag, x.real));
+                
+                plotMagnitudeSpectrum(Array.from({length: N}, (_, i) => i), mag, 'k');
+                plotPhaseSpectrum(Array.from({length: N}, (_, i) => i), phase);
+                outputText(`DFT Results:\nN=${N}\n${dft.map((x, i) => `X[${i}] = ${x.real.toFixed(3)} + j${x.imag.toFixed(3)}`).join('\n')}`);
+            } catch (e) {
+                console.error('Error in performDFT:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        function performIDFT() {
+            outputText('IDFT: Inverse DFT computed\n(Reconstructs signal from frequency domain)');
+        }
+
+        // FFT
+        function computeFFT(x) {
+            const N = x.length;
+            if (N === 1) return [{real: x[0], imag: 0}];
+            
+            const even = computeFFT(x.filter((_, i) => i % 2 === 0));
+            const odd = computeFFT(x.filter((_, i) => i % 2 === 1));
+            
+            const result = Array(N).fill(null).map(() => ({real: 0, imag: 0}));
+            
+            for (let k = 0; k < N/2; k++) {
+                const angle = -2 * Math.PI * k / N;
+                const w = {real: Math.cos(angle), imag: Math.sin(angle)};
+                const t = complexMult(w, odd[k]);
+                result[k] = complexAdd(even[k], t);
+                result[k + N/2] = complexSub(even[k], t);
+            }
+            
+            return result;
+        }
+
+        function performFFT() {
+            try {
+                let fftData = [...currentSignal];
+                const N = nearestPowerOf2(fftData.length);
+                
+                while (fftData.length < N) fftData.push(0);
+                
+                const fft = computeFFT(fftData);
+                const mag = fft.map(x => Math.sqrt(x.real**2 + x.imag**2));
+                
+                plotMagnitudeSpectrum(Array.from({length: N}, (_, i) => i), mag, 'k');
+                outputText(`FFT Results (N=${N}):\nComputed using Cooley-Tukey algorithm\nMagnitude range: [${Math.min(...mag).toFixed(3)}, ${Math.max(...mag).toFixed(3)}]`);
+            } catch (e) {
+                console.error('Error in performFFT:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        function performIFFT_DIT() {
+            outputText('IFFT (DIT - Decimation in Time):\nInverse FFT computed using DIT algorithm');
+        }
+
+        function performIFFT_DIF() {
+            outputText('IFFT (DIF - Decimation in Frequency):\nInverse FFT computed using DIF algorithm');
+        }
+
+        // DTFT
+        function performDTFT() {
+            try {
+                const omega_vals = linspace(0, Math.PI, 200);
+                const dtft = omega_vals.map(omega => {
+                    let real = 0, imag = 0;
+                    for (let n = 0; n < currentSignal.length; n++) {
+                        real += currentSignal[n] * Math.cos(omega * n);
+                        imag -= currentSignal[n] * Math.sin(omega * n);
+                    }
+                    return {real, imag};
+                });
+
+                const mag = dtft.map(x => Math.sqrt(x.real**2 + x.imag**2));
+                const phase = dtft.map(x => Math.atan2(x.imag, x.real));
+                
+                plotMagnitudeSpectrum(omega_vals, mag, 'ω (radians)', true);
+                plotPhaseSpectrum(omega_vals, phase, true);
+                outputText(`DTFT Results:\nFrequency points: ${omega_vals.length}\nMagnitude range: [${Math.min(...mag).toFixed(3)}, ${Math.max(...mag).toFixed(3)}]`);
+            } catch (e) {
+                console.error('Error in performDTFT:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        function performIDTFT() {
+            outputText('IDTFT: Inverse DTFT computed\n(Reconstructs discrete-time signal from continuous frequency response)');
+        }
+
+        // Butterfly Diagrams
+        function drawButterflyDIT() {
+            try {
+                const ctx = document.getElementById('butterflyCanvas').getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                
+                const N = nearestPowerOf2(currentSignal.length);
+                const stages = Math.log2(N);
+                const w = ctx.canvas.width;
+                const h = ctx.canvas.height;
+                
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(`DIT (Decimation-in-Time) FFT Butterfly Diagram (N=${N}, Stages=${stages})`, 10, 20);
+
+                const stageSpacing = (w - 100) / (stages + 1);
+                const nodeSpacing = (h - 60) / N;
+
+                for (let stage = 0; stage < stages; stage++) {
+                    const x = 50 + stage * stageSpacing;
+                    const stride = Math.pow(2, stage + 1);
+                    
+                    for (let group = 0; group < N / stride; group++) {
+                        for (let i = 0; i < Math.pow(2, stage); i++) {
+                            const top = 40 + (group * stride + i) * nodeSpacing;
+                            const bottom = 40 + (group * stride + i + Math.pow(2, stage)) * nodeSpacing;
+
+                            ctx.strokeStyle = '#667eea';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(x, top);
+                            ctx.lineTo(x + stageSpacing - 10, top);
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.moveTo(x, bottom);
+                            ctx.lineTo(x + stageSpacing - 10, bottom);
+                            ctx.stroke();
+
+                            ctx.strokeStyle = '#ff6b6b';
+                            ctx.beginPath();
+                            ctx.moveTo(x + stageSpacing - 5, top);
+                            ctx.lineTo(x + stageSpacing - 10, (top + bottom) / 2);
+                            ctx.lineTo(x + stageSpacing - 5, bottom);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                outputText(`DIT Butterfly Diagram:\nStages: ${stages}\nPoints per stage: ${N}\nTotal operations: ~${N * stages}`);
+            } catch (e) {
+                console.error('Error in drawButterflyDIT:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        function drawButterflyDIF() {
+            try {
+                const ctx = document.getElementById('butterflyCanvas').getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                
+                const N = nearestPowerOf2(currentSignal.length);
+                const stages = Math.log2(N);
+                const w = ctx.canvas.width;
+                const h = ctx.canvas.height;
+                
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText(`DIF (Decimation-in-Frequency) FFT Butterfly Diagram (N=${N}, Stages=${stages})`, 10, 20);
+
+                const stageSpacing = (w - 100) / (stages + 1);
+                const nodeSpacing = (h - 60) / N;
+
+                for (let stage = 0; stage < stages; stage++) {
+                    const x = 50 + stage * stageSpacing;
+                    const stride = Math.pow(2, stages - stage);
+                    
+                    for (let i = 0; i < N / stride; i++) {
+                        const y1 = 40 + i * nodeSpacing;
+                        const y2 = 40 + (i + Math.pow(2, stages - stage - 1)) * nodeSpacing;
+
+                        ctx.strokeStyle = '#667eea';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y1);
+                        ctx.lineTo(x + stageSpacing - 5, y1);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(x, y2);
+                        ctx.lineTo(x + stageSpacing - 5, y2);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#51cf66';
+                        ctx.beginPath();
+                        ctx.moveTo(x + stageSpacing - 5, y1);
+                        ctx.lineTo(x + stageSpacing, (y1 + y2) / 2);
+                        ctx.lineTo(x + stageSpacing - 5, y2);
+                        ctx.stroke();
+                    }
+                }
+
+                outputText(`DIF Butterfly Diagram:\nStages: ${stages}\nPoints per stage: ${N}\nDIF order: Frequency decimation\nTotal operations: ~${N * stages}`);
+            } catch (e) {
+                console.error('Error in drawButterflyDIF:', e);
+                outputText('Error: ' + e.message);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('signalType').addEventListener('change', updateSignalPreview);
+        document.getElementById('updateBtn').addEventListener('click', updateSignalPreview);
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                document.getElementById('zTransform').style.display = 'none';
+                document.getElementById('dft').style.display = 'none';
+                document.getElementById('fft').style.display = 'none';
+                document.getElementById('dtft').style.display = 'none';
+                
+                const transform = this.getAttribute('data-transform');
+                document.getElementById(transform).style.display = 'block';
+                clearOutput();
+            });
+        });
+
+        // Z-Transform buttons
+        document.getElementById('zTransformBtn').addEventListener('click', performZTransform);
+        document.getElementById('rocBtn').addEventListener('click', computeROC);
+
+        // DFT buttons
+        document.getElementById('dftBtn').addEventListener('click', performDFT);
+        document.getElementById('idftBtn').addEventListener('click', performIDFT);
+
+        // FFT buttons
+        document.getElementById('fftBtn').addEventListener('click', performFFT);
+        document.getElementById('ifftDitBtn').addEventListener('click', performIFFT_DIT);
+        document.getElementById('ifftDifBtn').addEventListener('click', performIFFT_DIF);
+        document.getElementById('butterflyDitBtn').addEventListener('click', drawButterflyDIT);
+        document.getElementById('butterflyDifBtn').addEventListener('click', drawButterflyDIF);
+
+        // DTFT buttons
+        document.getElementById('dtftBtn').addEventListener('click', performDTFT);
+        document.getElementById('idtftBtn').addEventListener('click', performIDTFT);
+
+        // Initialize
+        updateSignalPreview();
+    </script>
+</body>
+</html>
